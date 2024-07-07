@@ -1,1 +1,200 @@
-<p>hello world!</p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Size Detection</title>
+    <style>
+         body {
+                font-family: Arial, sans-serif;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+                background-image: url('https://img.freepik.com/free-photo/arrangement-black-friday-shopping-carts-with-copy-space_23-2148667047.jpg'); /* Replace with your image URL */
+                background-size: cover; 
+                padding: 20px;
+                box-sizing: border-box;
+            }
+            .header img {
+    max-width: 100%;
+    height: auto;
+}
+   
+        h1 {
+            color: #333;
+        }
+        form, .result {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 300px;
+            margin-bottom: 20px;
+        }
+        input, select {
+            padding: 10px;
+            flex-direction: column;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        hsub{
+            text-align: center;
+            height: auto;
+            display: block;
+            align-items: center;
+            justify-content: center;
+
+        }
+        button {
+            padding: 10px;
+            font-size: 16px;
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #dc7ce5;
+        }
+        br{
+            line-height: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        
+    </div>
+
+    <h1><font color="white">Size Detection</font></h1>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" id="image" name="image" accept="image/*" required>
+        <button type="submit">Upload Image</button>
+    </form>
+    <br>
+
+    <div id="result" class="result"></div>
+    <form id="heightForm" style="display: none;">
+        <div class="form-group">
+            <label for="gender"><font color="white"><big><b>Select Gender:</b></big></font></label>
+    <br>
+    <br>
+            <input type="radio" id="male" name="gender" value="male" required>
+            <label for="male"><font color="white" text>Male</font></label><br>
+            <input type="radio" id="female" name="gender" value="female">
+            <label for="female"><font color="white">female</font></label><br>
+            <input type="radio" id="other" name="gender" value="other">
+            <label for="other"><font color="white">other</font></label><br><br>
+        </div>
+        <div class="form-group">
+            <label for="height"><big><font color="white"><b>Enter your height in cm:</b></font></big></label><br><br>
+         <input type="number" id="height" name="height" placeholder="Enter your height in cm" >
+         <br>
+         <br>
+        </div>
+        <button type="submit" id="hsub">Submit</button>
+        <br>
+        
+    </form>
+    <br>
+    <form id="brandForm" style="display: none;">
+        <select id="brandSelect" required>
+            <option value="" disabled selected>Select a brand</option>
+            <br>
+            <!-- Options will be dynamically added via JavaScript -->
+        </select><br><br>
+        
+        <select id="siteSelect" required>
+            <option value="" disabled selected>Select a shopping site</option><br>
+            <option value="amazon">Amazon</option>
+            <option value="myntra">Myntra</option>
+            <option value="flipkart">Flipkart</option>
+            <option value="meesho">Meesho</option>
+            <option value="ajio">Ajio</option><br>
+        </select>
+        <br><br>
+        <button type="button" id="shopNowBtn">Shop Now</button>
+    </form>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+
+            fetch('/upload_image', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                document.getElementById('result').textContent = `Hips: ${data.hips.toFixed(2)}px, Waist: ${data.waist.toFixed(2)}px`;
+                document.getElementById('heightForm').style.display = 'block';
+                document.getElementById('heightForm').dataset.hips = data.hips;
+                document.getElementById('heightForm').dataset.waist = data.waist;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('result').textContent = `Error: ${error.message}`;
+            });
+        });
+
+        document.getElementById('heightForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const height = document.getElementById('height').value;
+            const hips = this.dataset.hips;
+            const waist = this.dataset.waist;
+
+            fetch('/calculate_size', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ height, hips, waist })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(sizeInfo => {
+                if (sizeInfo.error) {
+                    throw new Error(sizeInfo.error);
+                }
+                let brandSelect = document.getElementById('brandSelect');
+                brandSelect.innerHTML = '<option value="" disabled selected>Select a brand</option>';
+                for (let brand in sizeInfo) {
+                    let option = document.createElement('option');
+                    option.value = brand;
+                    option.textContent = `${brand}: ${sizeInfo[brand]}`;
+                    brandSelect.appendChild(option);
+                }
+                document.getElementById('brandForm').style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('result').textContent = `Error: ${error.message}`;
+            });
+        });
+
+        document.getElementById('shopNowBtn').addEventListener('click', function() {
+            const brand = document.getElementById('brandSelect').value;
+            const site = document.getElementById('siteSelect').value;
+            const size = document.getElementById('brandSelect').options[document.getElementById('brandSelect').selectedIndex].text.split(': ')[1];
+            const gender = document.querySelector('input[name="gender"]:checked').value;
+            
+            if (brand && site && size && gender) {
+                const url = `/redirect_to_shopping?brand=${encodeURIComponent(brand)}&site=${encodeURIComponent(site)}&size=${encodeURIComponent(size)}&gender=${encodeURIComponent(gender)}`;
+                window.open(url, '_blank');
+            } else {
+                alert('Please select a brand, a shopping site, and ensure gender is selected.');
+            }
+        });
+    </script>
+</body>
+</html>
